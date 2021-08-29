@@ -430,12 +430,12 @@ def update_session(session_id, session_name, end_time, end_date, start_time, ses
         print(repr(e))
 
 
-def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, session_def, end_date, reading_file):
+def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, session_def, end_date, reading_file, prefix):
     if excel_sessions < bb_sessions:
         asession = sessions({course: session_def[course]})
         for i in range(excel_sessions):
             session_object = {
-                "name": asession[i]["course_id"],
+                "name": asession[i]["course_id"]+prefix,
                 "recurrenceRule": {
                     "recurrenceType": "weekly",
                     "interval": 1,
@@ -451,7 +451,7 @@ def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, sessi
             else:
                 asession = sessions({course: session_def[course]})
                 sess_id = course_sessions["results"][i]["id"]
-                sess_name = asession[i]["course_id"]
+                sess_name = asession[i]["course_id"]+prefix
                 sess_end_time = asession[i]["end_time"]
                 sess_start_time = asession[i]["start_time"]
                 sess_days_of_week = asession[i]["days_of_week"]
@@ -459,7 +459,7 @@ def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, sessi
                 update_session(sess_id, sess_name, sess_end_time,
                                end_date, sess_start_time, sess_days_of_week)
             if check_session(session_object, course_sessions["results"]):
-                print("")
+                print("this is reached ")
             else:
                 for session in course_sessions["results"][excel_sessions:]:
                     delete_session(session["id"], session["name"])
@@ -469,7 +469,7 @@ def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, sessi
         asession = sessions({course: session_def[course]})
         for i in range(bb_sessions):
             session_object = {
-                "name": asession[i]["course_id"],
+                "name": asession[i]["course_id"]+prefix,
                 "recurrenceRule": {
                     "recurrenceType": "weekly",
                     "interval": 1,
@@ -485,7 +485,7 @@ def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, sessi
             else:
                 asession = sessions({course: session_def[course]})
                 sess_id = course_sessions["results"][i]["id"]
-                sess_name = asession[i]["course_id"]
+                sess_name = asession[i]["course_id"]+prefix
                 sess_end_time = asession[i]["end_time"]
                 sess_start_time = asession[i]["start_time"]
                 sess_days_of_week = asession[i]["days_of_week"]
@@ -493,7 +493,7 @@ def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, sessi
                 update_session(sess_id, sess_name, sess_end_time,
                                end_date, sess_start_time, sess_days_of_week)
         for session in asession[bb_sessions:]:
-            session_name = session['course_id']
+            session_name = session['course_id']+prefix
             session_days_of_week = session["days_of_week"]
             start_time = session["start_time"]
             end_time = session["end_time"]
@@ -506,7 +506,7 @@ def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, sessi
         asession = sessions({course: session_def[course]})
         for i in range(bb_sessions):
             session_object = {
-                "name": asession[i]["course_id"],
+                "name": asession[i]["course_id"]+prefix,
                 "recurrenceRule": {
                     "recurrenceType": "weekly",
                     "interval": 1,
@@ -522,7 +522,7 @@ def compare_sessions(bb_sessions, excel_sessions, course, course_sessions, sessi
             else:
                 asession = sessions({course: session_def[course]})
                 sess_id = course_sessions["results"][i]["id"]
-                sess_name = asession[i]["course_id"]
+                sess_name = asession[i]["course_id"]+prefix
                 sess_end_time = asession[i]["end_time"]
                 sess_start_time = asession[i]["start_time"]
                 sess_days_of_week = asession[i]["days_of_week"]
@@ -544,13 +544,20 @@ if __name__ == "__main__":
     print("\n\n\n")
     end_date = sys.argv[1]
 
+    prefix = "_الفصل الإفتراضي"
     data1 = read_file(reading_file)
     session_def = group_sessions(data1)
     limit = 1
     for course in session_def:
         if limit == 200:
             break
-        course_uuid = get_course_uuid(course)
+        try:
+            course_uuid = get_course_uuid(course)
+        except:
+            errorLogger.error(f"Failed to get uuid for {course}")
+            drop_course(course, reading_file)
+            continue
+
         context = get_collab_context_id(course_uuid["uuid"])
         if len(context["results"]) == 0:
             create_collab_context(course_uuid["uuid"], course)
@@ -563,12 +570,18 @@ if __name__ == "__main__":
         if course_sessions is not None:
             bb_sessions = course_sessions["size"]
             excel_sessions = len(session_def[course].keys())
-            compare_sessions(bb_sessions, excel_sessions,
-                             course, course_sessions, session_def, end_date, reading_file)
+            try:
+                compare_sessions(bb_sessions, excel_sessions,
+                             course, course_sessions, session_def, end_date, reading_file, prefix)
+            except:
+                print(f"something wrong with {course}")
+                errorLogger.error(f"Something wrong with {course}")
+                drop_course(course, reading_file)
+                continue
         if course_sessions is None:
             asession = sessions({course: session_def[course]})
             for session in asession:
-                session_name = session['course_id']
+                session_name = session['course_id']+prefix
                 session_days_of_week = session["days_of_week"]
                 start_time = session["start_time"]
                 end_time = session["end_time"]

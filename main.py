@@ -42,5 +42,7 @@ if __name__ == "__main__":
         os.remove("data1.csv")
     if os.path.isfile('data2.csv') == True:
             os.remove("data2.csv")
+    if os.path.isfile('normalized-data.csv') == True:
+            os.remove("normalized-data.csv")
 
     print('\nTime Taken:', time.strftime("%H:%M:%S", time.gmtime(seconds)))
